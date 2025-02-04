@@ -12,7 +12,6 @@ class LMI():
     self.nx = self.system.nx
     self.nu = self.system.nu
     self.nq = self.system.nq
-    self.max_torque = self.system.max_torque
     self.A = self.system.A
     self.B = self.system.B
     self.C = self.system.C
@@ -38,7 +37,7 @@ class LMI():
 
     # Flag variables to determine which kind of LMI has to be solved
     self.old_trigger = True
-    self.dynamic = True
+    self.dynamic = False
     self.optim_finsler = False
     
     # Sign definition of Delta V parameter
@@ -346,7 +345,7 @@ class LMI():
       if verbose:
         print(f"Max eigenvalue of P: {np.max(np.linalg.eigvals(self.P.value))}")
         print(f"Max eigenvalue of M: {np.max(np.linalg.eigvals(self.M.value))}") 
-        print(f"Size of ROA: {np.pi/np.sqrt(np.linalg.det(self.P.value))}")
+        print(f"Size of ROA: {4/3 * np.pi/np.sqrt(np.linalg.det(self.P.value))}")
         if self.dynamic:
             print(f"Rho value: {self.Rho.value}")
       
@@ -422,40 +421,24 @@ class LMI():
       
 # Main loop execution 
 if __name__ == "__main__":
-  
-  # Weights and bias import
-  W1_name = os.path.abspath(__file__ + "/../weights/W1.csv")
-  W2_name = os.path.abspath(__file__ + "/../weights/W2.csv")
-  W3_name = os.path.abspath(__file__ + "/../weights/W3.csv")
-  W4_name = os.path.abspath(__file__ + "/../weights/W4.csv")
+  ## ======== WEIGHTS AND BIASES IMPORT ========
 
-  b1_name = os.path.abspath(__file__ + "/../weights/b1.csv")
-  b2_name = os.path.abspath(__file__ + "/../weights/b2.csv")
-  b3_name = os.path.abspath(__file__ + "/../weights/b3.csv")
-  b4_name = os.path.abspath(__file__ + "/../weights/b4.csv")
-  
-  W1 = np.loadtxt(W1_name, delimiter=',')
-  W2 = np.loadtxt(W2_name, delimiter=',')
-  W3 = np.loadtxt(W3_name, delimiter=',')
-  W4 = np.loadtxt(W4_name, delimiter=',')
-  W4 = W4.reshape((1, len(W4)))
+  files = sorted(os.listdir(os.path.abspath(__file__ + "/../weights")))
+  W = []
+  b = []
+  for f in files:
+    if f.startswith('W') and f.endswith('.csv'):
+      W.append(np.loadtxt(os.path.abspath(__file__ + "/../weights/" + f), delimiter=','))
+    elif f.startswith('b') and f.endswith('.csv'):
+      b.append(np.loadtxt(os.path.abspath(__file__ + "/../weights/" + f), delimiter=','))
 
-  W = [W1, W2, W3, W4]
+  # Weights and biases reshaping
+  W[-1] = W[-1].reshape((1, len(W[-1])))
   
-  b1 = np.loadtxt(b1_name, delimiter=',')
-  b2 = np.loadtxt(b2_name, delimiter=',')
-  b3 = np.loadtxt(b3_name, delimiter=',')
-  b4 = np.loadtxt(b4_name, delimiter=',')
-  
-  b = [b1, b2, b3, b4]
-
   # Lmi object creation
   lmi = LMI(W, b)
-  
-  # Alpha search 
-  # alpha = lmi.search_alpha(1.0, 0.0, 1e-5, 1.0 verbose=True)
 
-  # Good alpha value found in previous simulations
   alpha = np.load('weights/alpha.npy')
 
   lmi.solve(alpha, 0.8, verbose=True)
+  # Weights and bias 

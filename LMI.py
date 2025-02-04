@@ -24,7 +24,7 @@ class LMI():
     # TO DO: PUT IN CONFIGURATION FILE
     # TO DO: PUT IN CONFIGURATION FILE
     # Flag variables to determine which kind of LMI has to be solved
-    self.old_trigger = False
+    self.old_trigger = True
     self.optim_finsler = False
     # TO DO: PUT IN CONFIGURATION FILE
     # TO DO: PUT IN CONFIGURATION FILE
@@ -182,10 +182,7 @@ class LMI():
         Z_el = self.Z_layers[i][k, :]
         T_el = self.T_layers[i][k, k]
 
-        if i == self.nlayers-1:
-          vcap = np.min([np.abs(-self.bound - self.wstar[i][k][0]), np.abs(self.bound - self.wstar[i][k][0])], axis=0)
-        else:
-          vcap = np.min([np.abs(-self.bound - self.ustar), np.abs(self.bound - self.ustar)], axis=0)
+        vcap = np.min([np.abs(-self.bound - self.wstar[i][k][0]), np.abs(self.bound - self.wstar[i][k][0])], axis=0)
 
         ellip = cp.bmat([
             [self.P, cp.reshape(Z_el, (self.nx ,1))],
