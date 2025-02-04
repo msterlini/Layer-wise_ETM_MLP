@@ -102,30 +102,113 @@ class System():
     self.N = [self.Nux, self.Nuw, self.Nub, self.Nvx, self.Nvw, self.Nvb]
 
     ## ========== EQUILIBRIUM COMPUTATION ==========
-    
+
     # Useful matrices for LMI and equilibria computation
     self.R = np.linalg.inv(np.eye(*self.Nvw.shape) - self.Nvw)
     self.Rw = self.Nux + self.Nuw @ self.R @ self.Nvx
     self.Rb = self.Nuw @ self.R @ self.Nvb + self.Nub
+    
+    # Flag to determine whether to compute equilibrium using the general implicit method or the specific explicit method for saturation
+    explicit = False
 
-    # Equilibrium computation with implicit form
-    def implicit_function(x):
-      x = x.reshape(3, 1)
-      I = np.eye(self.A.shape[0])
-      K = np.array([[1.0, 0.0, 0.0]])
-      to_zero = np.squeeze((-I + self.A + self.B @ self.Rw - self.C @ K) @ x + self.C * np.sin(K @ x) + self.D * self.constant_reference + self.B @ self.Rb)
-      return to_zero
+    if explicit:
 
-    self.xstar = fsolve(implicit_function, np.array([[self.constant_reference], [0.0], [0.0]])).reshape(3,1)
+      # Equilibrium computation with implicit form
+      def implicit_function(x):
+        x = x.reshape(3, 1)
+        I = np.eye(self.A.shape[0])
+        K = np.array([[1.0, 0.0, 0.0]])
+        to_zero = np.squeeze((-I + self.A + self.B @ self.Rw - self.C @ K) @ x + self.C * np.sin(K @ x) + self.D * self.constant_reference + self.B @ self.Rb)
+        return to_zero
 
-    # Equilibrium of the input value
-    self.ustar = self.Rw @ self.xstar + self.Rb
+      self.xstar = fsolve(implicit_function, np.array([[self.constant_reference], [0.0], [0.0]])).reshape(3,1)
 
-    # Equilibrium state for hidden layers
-    wstar = self.R @ self.Nvx @ self.xstar + self.R @ self.Nvb
-    wstar_split = np.split(wstar, np.cumsum(self.neurons[:-1]))
-    wstar1, wstar2, wstar3, wstar4 = wstar_split
-    self.wstar = [wstar1, wstar2, wstar3, wstar4]
+      # Equilibrium of the input value
+      self.ustar = self.Rw @ self.xstar + self.Rb
+
+      # Equilibrium state for hidden layers
+      wstar = self.R @ self.Nvx @ self.xstar + self.R @ self.Nvb
+      wstar_split = np.split(wstar, np.cumsum(self.neurons[:-1]))
+      wstar1, wstar2, wstar3, wstar4 = wstar_split
+      self.wstar = [wstar1, wstar2, wstar3, wstar4]
+
+    # If the implicit method is chosen, the equilibrium is computed using the general implicit method
+    else:
+
+      # Method to pass a function to each element of an array
+      def nonlin(array, func, *args):
+        return np.array([func(a, *args) for a in array])
+
+      # Definition of the non-linear function Phi
+      def sinnonlin(x):
+        return np.sin(x) - x
+
+      # Definition of different activation functions
+      def saturation(x, bound):
+        return np.clip(x, -bound, bound)
+
+      def tanh(x):
+        return np.tanh(x)
+
+      # Definition of the implicit function to be solved
+      def total_implicit(z):
+
+        # Input vector: stack of x and nu
+        z = z.reshape(self.nx + self.nphi, 1)
+
+        # Defintion of w = phi(nu)
+        activation = nonlin(
+          np.block([
+            [np.zeros((self.nx, self.nx)), np.zeros((self.nx, self.nphi))],
+            [np.zeros((self.nphi, self.nx)), np.eye(self.nphi)]
+          ]) @ z, saturation, self.bound)
+
+        # Definition of Phi
+        nonlinearity = nonlin(
+          np.block([
+            [np.eye(self.nx), np.zeros((self.nx, self.nphi))],
+            [np.zeros((self.nphi, self.nx)), np.zeros((self.nphi, self.nphi))] 
+          ]) @ z, sinnonlin)
+
+        # Implicit function to be solved
+        to_zero = np.block([
+          [(self.A + self.B @ self.Nux - np.eye(self.nx)),  np.zeros((self.nx, self.nphi))],
+          [self.Nvx,                                        -np.eye(self.nphi)]
+        ]) @ z + np.block([
+          [np.zeros((self.nx, self.nx)),    self.B @ self.Nuw],
+          [np.zeros((self.nphi, self.nx)),  self.Nvw] 
+        ]) @ activation + np.block([
+          [self.C @ self.E,                 np.zeros((self.nx, self.nphi))],
+          [np.zeros((self.nphi, self.nx)),  np.zeros((self.nphi, self.nphi))]
+        ]) @ nonlinearity  + np.block([
+          [self.B @ self.Nub + self.D * self.constant_reference],
+          [self.Nvb]
+        ])
+        
+        return to_zero.squeeze()
+
+      # Initial guess for the status x
+      initial_x_guess = np.array([
+        [self.constant_reference],
+        [0.0],
+        [0.0],
+      ])
+
+      # Initial guess for the network state nu
+      initial_nu_guess = np.zeros((self.nphi, 1))
+      
+      # Initial guess for the total implicit function
+      initial_guess = np.vstack([initial_x_guess, initial_nu_guess])
+
+      # Solving the implicit function
+      eq = fsolve(total_implicit, initial_guess)
+      
+      # Extracting the equilibrium values
+      self.xstar = eq[:self.nx].reshape(self.nx, 1)
+      wstar_split = np.split(eq[self.nx:], np.cumsum(self.neurons[:-1]))
+      self.wstar = [np.reshape(wstar, (len(wstar), 1)) for wstar in wstar_split] 
+
+      self.ustar = self.wstar[-1]
 
     ## ========== ETM PARAMETERS ==========
 
@@ -140,6 +223,50 @@ class System():
 
     # List to store ETM triggering matrices
     self.bigX = Omega
+
+    ## ========== LMI PARAMETERS ==========
+
+    # LMI matrices for system dynamics
+    self.Abar = self.A + self.B @ self.Rw
+    self.Bbar = -self.B @ self.Nuw @ self.R
+    
+    # PROJECTION MATRICES
+    
+    # [x, psi, nu] = Rnu [x, psi, Phi]
+    self.Pi_nu = np.block([
+      [np.eye(self.nx),                np.zeros((self.nx, self.nphi)),   np.zeros((self.nx, self.nq))],
+      [np.zeros((self.nphi, self.nx)), np.eye(self.nphi),                np.zeros((self.nphi, self.nq))],
+      [self.R @ self.Nvx,              np.eye(self.R.shape[0]) - self.R, np.zeros((self.nphi, self.nq))],
+    ])
+
+    # [x, Phi] = Pis [x, psi, Phi]
+    self.Pi_s = np.block([
+      [self.E,                            np.zeros((1, self.nphi)),   np.zeros((1, self.nq))],
+      [np.zeros((self.nq, self.nx)),      np.zeros((1, self.nphi)),   np.eye(self.nq)]
+    ])
+
+    # Global quadratic abstraction for Phi nonlinearity: [Ex, Phi(Ex)]^T Sinquad [Ex, Phi(Ex)] >= 0
+    self.Phi_abstraction = np.block([
+      [0.0,   -1.0],
+      [-1.0,  -2.0]
+    ])
+
+    # Create projection matrices from [x, psi^i, nu^i] to [x, psi, nu]
+    def create_matrices(x_size, sizes):
+      matrices = []
+      total_columns = x_size + 2 * sum(sizes)
+
+      for id, size in enumerate(sizes):
+        rows = 2 * size
+        mat = np.zeros((x_size + rows, total_columns))
+        mat[:x_size, :x_size] = np.eye(x_size)
+        mat[x_size:x_size + size, x_size + sum(sizes[:id]):x_size + sum(sizes[:id+1])] = np.eye(size)
+        mat[-size:, x_size + sum(sizes) + sum(sizes[:id]):x_size + sum(sizes) + sum(sizes[:id+1])] = np.eye(size)
+        matrices.append(mat)
+      
+      return matrices
+    
+    self.projection_matrices = create_matrices(self.nx, self.neurons)
   
   ## ========== MODULES DEFINITION ==========
   
