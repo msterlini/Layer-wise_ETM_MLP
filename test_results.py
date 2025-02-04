@@ -1,4 +1,5 @@
 from system import System
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 
@@ -188,7 +189,6 @@ for i, event in enumerate(events):
   if not event[3]:
     events[i][3] = None
     
-import matplotlib.pyplot as plt
 
 # Control input plot
 plot_cut = 200
