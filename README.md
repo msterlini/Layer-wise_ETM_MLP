@@ -1,6 +1,6 @@
-# Layer-Wise-Dynamic-Event-Triggered-Neural-Network-Control-For-Discrete-Time-Nonlinear-Systems
+# Layer-wise dynamic event-triggered neural network control
 
-This repository contains the code for the system and LMI implementation for the paper titled "Layer-Wise Dynamic Event-Triggered Neural Network Control For Discrete-Time Nonlinear Systems".
+This repository contains the code to reproduce the experimental results in ["Layer-Wise Dynamic Event-Triggered Neural Network Control For Discrete-Time Nonlinear Systems"](https://ut3-toulouseinp.hal.science/hal-04870932/document)..
 
 ## Contents
 
