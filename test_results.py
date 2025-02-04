@@ -1,4 +1,6 @@
 from system import System
+from auxiliary_code.ellipsoids import ellipsoid_plot_3D
+from auxiliary_code.ellipsoids import ellipsoid_plot_2D_projections
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -286,8 +288,6 @@ plt.grid(True)
 plt.show()
 
 # Ellipsoid plot
-from Test.auxiliary_code.ellipsoids import ellipsoid_plot_3D
-from Test.auxiliary_code.ellipsoids import ellipsoid_plot_2D_projections
 # 3D ROA plot
 fig, ax = ellipsoid_plot_3D(P, False, color='yellow', legend=r'ROA approximation $\mathcal{E}(P, x_*)$')
 ellipsoid_plot_2D_projections(P, plane='xy', offset=-8, ax=ax, color='b', legend=r'Projections of $\mathcal{E}(P, x_*)$')
