@@ -1,6 +1,6 @@
 # Layer-wise dynamic event-triggered neural network control
 
-This repository contains the code to reproduce the experimental results in ["Layer-Wise Dynamic Event-Triggered Neural Network Control For Discrete-Time Nonlinear Systems"](https://ut3-toulouseinp.hal.science/hal-04870932/document)..
+This repository contains the code to reproduce the experimental results in ["Layer-Wise Dynamic Event-Triggered Neural Network Control For Discrete-Time Nonlinear Systems"](https://ut3-toulouseinp.hal.science/hal-04870932/document).
 
 ## How to Run the Code
 
@@ -20,6 +20,19 @@ You can install the required packages using pip:
 ```bash
 pip install numpy scipy matplotlib torch cvxpy
 ```
+
+### Solver
+
+This code uses the MOSEK solver for optimization. You need to install MOSEK and obtain a license to run it.
+
+You can install MOSEK using pip:
+
+```bash
+pip install mosek
+```
+
+A MOSEK license, visit the [MOSEK website](https://www.mosek.com/products/academic-licenses/)
+
 
 ## Contents
 
