@@ -30,7 +30,10 @@ for f in files:
 
 ## ======== SYSTEM INITIALIZATION ========
 # Parameters: Weights, biases, triggering matrices, reference, gamma threshold for R matrix
-s = System(W, b, bigX, 0.0, 0.86)
+
+gamma_threshold = 0.86
+
+s = System(W, b, bigX, 0.0, gamma_threshold)
 
 # P matrix import for lyapunov function
 P = np.load(path + '/P.npy')
@@ -58,9 +61,9 @@ if random_start:
 
     # Initial state definition and system initialization
     x0 = np.array([[theta], [vtheta], [0.0]])
-    s = System(W, b, bigX, ref, 0.86)
+    s = System(W, b, bigX, ref, gamma_threshold)
 
-    # Check if the initial state is inside the ellipsoid
+    # Check if the initial state is inside the ellipsoid, specifically on the border for plotting purposes
     if (x0 - s.xstar).T @ P @ (x0 - s.xstar) <= 1.0 and (x0).T @ P @ (x0) >= 0.9:
 
       # Initial eta0 computation with respect to the initial state
@@ -72,14 +75,11 @@ if random_start:
       # Initial state update in the system
       s.state = x0
 
-      # Rho value setup
-      s.rho = np.ones(s.nlayers) * 0.86
-
       # Flag variable update to stop the search
       in_ellip = True
 
 
-# Fixed initial condition
+# Fixed initial condition, relative to plots in paper
 else:
   theta = -10.67 * np.pi / 180
   vtheta = -2.04
@@ -87,7 +87,7 @@ else:
   eta0 = 0.001
 
   x0 = np.array([[theta], [vtheta], [0.0]])
-  s = System(W, b, bigX, ref, 0.86)
+  s = System(W, b, bigX, ref, gamma_threshold)
   s.state = x0
   s.eta = np.ones(s.nlayers) * eta0
 
@@ -128,7 +128,10 @@ while not stop_run:
   inputs.append(u)
   events.append(e)
   etas.append(eta)
-  lyap.append((state - s.xstar).T @ P @ (state - s.xstar) + 2*eta[0] + 2*eta[1] + 2*eta[2] + 2*eta[3])
+  lyap_value = (state - s.xstar).T @ P @ (state - s.xstar)
+  for i in range(s.nlayers):
+    lyap_value += 2 * eta[i]
+  lyap.append(lyap_value)
   
   # Stop condition
   if lyap[-1] < lyap_magnitude or nsteps > max_steps:
@@ -167,30 +170,23 @@ else:
 timegrid = np.arange(0, nsteps)
 
 # Triggering percentage computation
-layer1_trigger = np.sum(events[:, 0]) / nsteps * 100
-layer2_trigger = np.sum(events[:, 1]) / nsteps * 100
-layer3_trigger = np.sum(events[:, 2]) / nsteps * 100
-layer4_trigger = np.sum(events[:, 3]) / nsteps * 100
+trigger = []
+for i in range(s.nlayers):
+  layer_trigger = np.sum(events[:, i]) / nsteps * 100
+  trigger.append(layer_trigger)
 
-print(f"Layer 1 has been triggered {layer1_trigger:.1f}% of times")
-print(f"Layer 2 has been triggered {layer2_trigger:.1f}% of times")
-print(f"Layer 3 has been triggered {layer3_trigger:.1f}% of times")
-print(f"Output layer has been triggered {layer4_trigger:.1f}% of times")
+for i in range(s.nlayers):
+  print(f"Layer {i+1} has been triggered {trigger[i]:.1f}% of times")
 
 # print(f"Lambda: {s.lambda1}")
-print(f"Overall update rate: {(layer1_trigger * s.neurons[0] + layer2_trigger * s.neurons[1] + layer3_trigger * s.neurons[2] + layer4_trigger * s.neurons[3]) / (s.nphi):.2f}%")
+overall_trigger = sum(trigger[i] * s.neurons[i] for i in range(s.nlayers)) / (s.nphi)
+print(f"Overall update rate: {overall_trigger:.1f}%")
 
 # Replace every non event value from 0 to None for ease of plotting
 for i, event in enumerate(events):
-  if not event[0]:
-    events[i][0] = None
-  if not event[1]:
-    events[i][1] = None
-  if not event[2]:
-    events[i][2] = None
-  if not event[3]:
-    events[i][3] = None
-    
+  for id, ev in enumerate(event):
+    if not ev:
+      events[i][id] = None
 
 # Control input plot
 plot_cut = 200
@@ -249,16 +245,15 @@ axs[0].grid(True)
 
 # Eta plots
 eta_cut = 100
-axs[1].plot(timegrid[:eta_cut], etas[:eta_cut, 0], label=r'$\eta^1$')
-axs[1].plot(timegrid[:eta_cut], etas[:eta_cut, 1], label=r'$\eta^2$')
-axs[1].plot(timegrid[:eta_cut], etas[:eta_cut, 2], label=r'$\eta^3$')
-axs[1].plot(timegrid[:eta_cut], etas[:eta_cut, 3], label=r'$\eta^4$')
+for i in range(s.nlayers):
+  axs[1].plot(timegrid[:eta_cut], etas[:eta_cut, i], label=fr'$\eta^{{{i+1}}}$')
 axs[1].legend(fontsize=14)
 axs[1].set_xlabel('Time steps', fontsize=14)
 axs[1].grid(True)
 plt.show()
 
 
+# Event plot
 event_cut = 300
 colors = ['r', 'g', 'b', 'c']
 body = [':', '-.', '--', '-']
@@ -269,16 +264,13 @@ fig, ax = plt.subplots(figsize=(11, 4))
 
 plot_events = events[:event_cut]
 
-plot_events[:, 1] *= 2 
-plot_events[:, 2] *= 3
-plot_events[:, 3] *= 4
+for i in range(s.nlayers):
+  plot_events[:, i] *= i + 1
 
 plot_events = plot_events[::-1]
 
-ax.stem(np.arange(event_cut), plot_events[:, 3], linefmt=colors[3] + body[3], markerfmt=colors[3] + heads[3], basefmt="", label=f'ETM {4}')
-ax.stem(np.arange(event_cut), plot_events[:, 2], linefmt=colors[2] + body[2], markerfmt=colors[2] + heads[2], basefmt="", label=f'ETM {3}')
-ax.stem(np.arange(event_cut), plot_events[:, 1], linefmt=colors[1] + body[1], markerfmt=colors[1] + heads[1], basefmt="", label=f'ETM {2}')
-ax.stem(np.arange(event_cut), plot_events[:, 0], linefmt=colors[0] + body[0], markerfmt=colors[0] + heads[0], basefmt="", label=f'ETM {1}')
+for i in range(s.nlayers - 1, -1, -1):
+  ax.stem(np.arange(event_cut), plot_events[:, i], linefmt=colors[i] + body[i], markerfmt=colors[i] + heads[i], basefmt="", label=f'ETM {i+1}')
 
 # Display the plot
 plt.ylim(0, 5)
@@ -288,31 +280,39 @@ plt.grid(True)
 plt.show()
 
 # Ellipsoid plot
+
 # 3D ROA plot
 fig, ax = ellipsoid_plot_3D(P, False, color='yellow', legend=r'ROA approximation $\mathcal{E}(P, x_*)$')
+
+# 2D ROA projections
 ellipsoid_plot_2D_projections(P, plane='xy', offset=-8, ax=ax, color='b', legend=r'Projections of $\mathcal{E}(P, x_*)$')
 ellipsoid_plot_2D_projections(P, plane='xz', offset=8, ax=ax, color='b', legend=None)
 ellipsoid_plot_2D_projections(P, plane='yz', offset=-35, ax=ax, color='b', legend=None)
 
+# 3D evolution of the states 
 ax.plot(states[:, 0] - s.xstar[0], states[:, 1] - s.xstar[1], states[:, 2] - s.xstar[2], 'b')
+
+# Initial point plot
 ax.plot(states[0, 0] - s.xstar[0], states[0, 1] - s.xstar[1], states[0, 2] - s.xstar[2], marker='o', markersize=5, color='c')
+
+# Equilibrium point plot
 ax.plot(0, 0, 0, marker='o', markersize=5, color='r', label='Equilibrium point')
 
 
+# 2D evolution of the states
 ax.plot(states[:, 0] - s.xstar[0], states[:, 1]  - s.xstar[1], -8, 'b')
-ax.plot(0, 0, -8, marker='o', markersize=5, color='r')
-ax.plot(states[0, 0] - s.xstar[0], states[0, 1] - s.xstar[1], -8, marker='o', markersize=5, color='c', label='Initial point')
-# ax.plot(states[0, 0] - s.xstar[0], states[0, 1] - s.xstar[1], -8, marker='o', markersize=5, color='g')
-
 ax.plot(states[:, 0] - s.xstar[0], 8, states[:, 2]  - s.xstar[2], 'b')
-ax.plot(0, 8, 0, marker='o', markersize=5, color='r')
-ax.plot(states[0, 0] - s.xstar[0], 8, states[0, 2] - s.xstar[2], marker='o', markersize=5, color='c')
-# ax.plot(states[0, 0] - s.xstar[0], 8, states[0, 2] - s.xstar[2], marker='o', markersize=5, color='g')
-
 ax.plot(-35, states[:, 1] - s.xstar[1], states[:, 2]  - s.xstar[2], 'b')
+
+# Projected equilibrium point plot
+ax.plot(0, 0, -8, marker='o', markersize=5, color='r')
+ax.plot(0, 8, 0, marker='o', markersize=5, color='r')
 ax.plot(-35, 0, 0, marker='o', markersize=5, color='r')
+
+# Projected initial point plot
+ax.plot(states[0, 0] - s.xstar[0], states[0, 1] - s.xstar[1], -8, marker='o', markersize=5, color='c', label='Initial point')
+ax.plot(states[0, 0] - s.xstar[0], 8, states[0, 2] - s.xstar[2], marker='o', markersize=5, color='c')
 ax.plot(-35, states[0, 1] - s.xstar[1], states[0, 2] - s.xstar[2], marker='o', markersize=5, color='c')
-# ax.plot(-35, states[0, 1] - s.xstar[1], states[0, 2] - s.xstar[2], marker='o', markersize=5, color='g')
 
 plt.legend(fontsize=14)
 plt.show()

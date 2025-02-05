@@ -1,4 +1,5 @@
 from system import System
+import config as conf
 import numpy as np
 import cvxpy as cp
 import warnings
@@ -18,19 +19,9 @@ class LMI():
     self.ustar    = self.system.ustar
     self.bound    = self.system.bound
 
-    # TO DO: PUT IN CONFIGURATION FILE
-    # TO DO: PUT IN CONFIGURATION FILE
-    # TO DO: PUT IN CONFIGURATION FILE
-    # TO DO: PUT IN CONFIGURATION FILE
-    # TO DO: PUT IN CONFIGURATION FILE
     # Flag variables to determine which kind of LMI has to be solved
-    self.old_trigger = True
-    self.optim_finsler = False
-    # TO DO: PUT IN CONFIGURATION FILE
-    # TO DO: PUT IN CONFIGURATION FILE
-    # TO DO: PUT IN CONFIGURATION FILE
-    # TO DO: PUT IN CONFIGURATION FILE
-    # TO DO: PUT IN CONFIGURATION FILE
+    self.old_trigger  = conf.old_trigger
+    self.optim        = conf.optim
     
     # Sign definition of Delta V parameter
     self.m_thres = 1e-6
@@ -166,7 +157,7 @@ class LMI():
         self.constraints += [constraint << 0]
 
     # Minimization constraints of X_i for each layer
-    if self.optim_finsler:
+    if self.optim:
       for i in range(self.nlayers):
         id = np.eye(self.nx + 2 * self.neurons[i])
         mat = cp.bmat([
@@ -194,7 +185,7 @@ class LMI():
   def create_problem(self):
 
     # Objective function defined as the sum of the trace of P, eps and the sum of all alphax variables
-    if self.optim_finsler:
+    if self.optim:
       obj = cp.trace(self.P) + cp.trace(self.eps)
       for i in range(self.nlayers):
         obj += self.betas[i]
@@ -234,64 +225,59 @@ class LMI():
       # Returns area of ROA if feasible
       return 4/3 * np.pi/np.sqrt(np.linalg.det(self.P.value))
   
-  # # Function that searches for the optimal alpha value by performing a golden ratio search until a certain numerical accuracy is reached or the limit of iterations is reached 
-  # def search_alpha(self, feasible_extreme, infeasible_extreme, threshold, verbose=False):
+  # Function that searches for the optimal alpha value by performing a golden ratio search until a certain numerical accuracy is reached or the limit of iterations is reached 
+  def search_alpha(self, feasible_extreme, infeasible_extreme, threshold, verbose=False):
 
-  #   golden_ratio = (1 + np.sqrt(5)) / 2
-  #   i = 0
+    golden_ratio = (1 + np.sqrt(5)) / 2
+    i = 0
     
-  #   # Loop until the difference between the two extremes is smaller than the threshold or the limit of iterations is reached
-  #   while (feasible_extreme - infeasible_extreme > threshold) and i < 100:
+    # Loop until the difference between the two extremes is smaller than the threshold or the limit of iterations is reached
+    while (feasible_extreme - infeasible_extreme > threshold) and i < 100:
 
-  #     i += 1
-  #     alpha1 = feasible_extreme - (feasible_extreme - infeasible_extreme) / golden_ratio
-  #     alpha2 = infeasible_extreme + (feasible_extreme - infeasible_extreme) / golden_ratio
+      i += 1
+      alpha1 = feasible_extreme - (feasible_extreme - infeasible_extreme) / golden_ratio
+      alpha2 = infeasible_extreme + (feasible_extreme - infeasible_extreme) / golden_ratio
       
-  #     # Solve the LMI for the two alpha values
-  #     ROA = self.solve(alpha1, verbose=False) # , search=False)
-  #     if ROA is None:
-  #       val1 = -1
-  #     else:
-  #       val1 = ROA
+      # Solve the LMI for the two alpha values
+      ROA = self.solve(alpha1, verbose=False)
+      if ROA is None:
+        val1 = -1
+      else:
+        val1 = ROA
       
-  #     ROA = self.solve(alpha2, verbose=False) # , search=False)
-  #     if ROA is None:
-  #       val2 = -1
-  #     else:
-  #       val2 = ROA
+      ROA = self.solve(alpha2, verbose=False)
+      if ROA is None:
+        val2 = -1
+      else:
+        val2 = ROA
         
-  #     # Update the feasible and infeasible extremes
-  #     if val1 > val2:
-  #       feasible_extreme = alpha2
-  #     else:
-  #       infeasible_extreme = alpha1
+      # Update the feasible and infeasible extremes
+      if val1 > val2:
+        feasible_extreme = alpha2
+      else:
+        infeasible_extreme = alpha1
         
-  #     if verbose:
-  #       if val1 > val2:
-  #         ROA = val1
-  #       else:
-  #         ROA = val2
-  #       print(f"\nIteration number: {i}")
-  #       print(f"==================== \nCurrent ROA value: {ROA}")
-  #       print(f"Current alpha value: {feasible_extreme}\n==================== \n")
-  #   return feasible_extreme
+      if verbose:
+        if val1 > val2:
+          ROA = val1
+        else:
+          ROA = val2
+        print(f"\nIteration number: {i}")
+        print(f"==================== \nCurrent ROA value: {ROA}")
+        print(f"Current alpha value: {feasible_extreme}\n==================== \n")
+    return feasible_extreme
 
   # Function that saves the variables of interest to use in the simulations
-  # def save_results(self, path_dir: str):
-  #   if not os.path.exists(path_dir):
-  #     os.makedirs(path_dir)
-  #   np.save(f"{path_dir}/P.npy", self.P.value)
-  #   if self.old_trigger:
-  #     np.save(f"{path_dir}/bigX1.npy", self.Omega1.value)
-  #     np.save(f"{path_dir}/bigX2.npy", self.Omega2.value)
-  #     np.save(f"{path_dir}/bigX3.npy", self.Omega3.value)
-  #     np.save(f"{path_dir}/bigX4.npy", self.Omegas.value)
-  #   else: 
-  #     np.save(f"{path_dir}/Rho.npy", self.Rho.value)
-  #     np.save(f"{path_dir}/bigX1.npy", self.bigX1.value)
-  #     np.save(f"{path_dir}/bigX2.npy", self.bigX2.value)
-  #     np.save(f"{path_dir}/bigX3.npy", self.bigX3.value)
-  #     np.save(f"{path_dir}/bigX4.npy", self.bigX4.value)
+  def save_results(self, path_dir: str):
+    if not os.path.exists(path_dir):
+      os.makedirs(path_dir)
+    np.save(f"{path_dir}/P.npy", self.P.value)
+    if self.old_trigger:
+      for id, omega in enumerate(self.Omegas):
+        np.save(f"{path_dir}/Omega{id+1}.npy", omega.value)
+    else: 
+      for id, bigX in enumerate(self.bigX_matrices):
+        np.save(f"{path_dir}/bigX{id+1}.npy", bigX.value)
       
 # Main loop execution 
 if __name__ == "__main__":
@@ -314,6 +300,14 @@ if __name__ == "__main__":
   # Lmi object creation
   lmi = LMI(W, b)
 
+  # Search of alpha value with golden section search
+  # alpha = lmi.search_alpha(1.0, 0.0, 1e-3, verbose=True)
+
+  # Alpha value import coming from previous simulations
   alpha = np.load('weights/alpha.npy')
 
+  # LMI solving
   lmi.solve(alpha, verbose=True)
+
+  # LMI results storage
+  # lmi.save_results('new_results')
