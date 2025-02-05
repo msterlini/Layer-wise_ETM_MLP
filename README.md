@@ -31,7 +31,7 @@ pip install numpy scipy matplotlib torch cvxpy
 
 ### Scripts
 
-- **LMI.py**: Executes the LMI problem.
-- **config.py**: Contains parameters to decide which LMI has to be solved.
-- **system.py**: Contains the system definition.
-- **test_results**: Plots the results shown in the paper.
+- `LMI.py`: Executes the LMI problem.
+- `config.py`: Contains parameters to decide which LMI has to be solved.
+- `system.py`: Contains the system definition.
+- `test_results.py`: Plots the results shown in the paper.
