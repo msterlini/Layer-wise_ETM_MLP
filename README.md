@@ -31,7 +31,7 @@ You can install MOSEK using pip:
 pip install mosek
 ```
 
-A MOSEK license, visit the [MOSEK website](https://www.mosek.com/products/academic-licenses/)
+A MOSEK license is required, visit the [MOSEK website](https://www.mosek.com/products/academic-licenses/)
 
 
 ## Contents
