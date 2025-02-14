@@ -7,14 +7,16 @@ import os
 
 ## ======== WEIGHTS AND BIASES IMPORT ========
 
-files = sorted(os.listdir(os.path.abspath(__file__ + "/../weights")))
-W = []
+weights_path = 'weights'
+
+files = sorted(os.listdir(os.path.abspath(__file__ + "/../" + weights_path)))
+W = []  
 b = []
 for f in files:
   if f.startswith('W') and f.endswith('.csv'):
-    W.append(np.loadtxt(os.path.abspath(__file__ + "/../weights/" + f), delimiter=','))
+    W.append(np.loadtxt(os.path.abspath(__file__ + "/../" + weights_path + "/" + f), delimiter=','))
   elif f.startswith('b') and f.endswith('.csv'):
-    b.append(np.loadtxt(os.path.abspath(__file__ + "/../weights/" + f), delimiter=','))
+    b.append(np.loadtxt(os.path.abspath(__file__ + "/../" + weights_path + "/" + f), delimiter=','))
 
 # Weights and biases reshaping
 W[-1] = W[-1].reshape((1, len(W[-1])))
@@ -22,6 +24,7 @@ W[-1] = W[-1].reshape((1, len(W[-1])))
 ## ======== TRIGGERING MATRICES IMPORT ========
 
 path = 'results'
+
 files = sorted(os.listdir(os.path.abspath(__file__ + "/../" + path)))
 bigX = []
 for f in files:
@@ -45,7 +48,7 @@ print(f"Volume of ellipsoid: {volume:.2f}")
 ref_bound = 5 * np.pi / 180
 
 # Flag to decide wether start in a random initial configuration such that the initial state is inside the ellipsoid or not
-random_start = False
+random_start = True
 
 # Loop to find a random initial state inside the ellipsoid
 if random_start:
@@ -194,7 +197,7 @@ fig, axs = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
 axs[0].plot(timegrid[:plot_cut], inputs[:plot_cut], label=r'u')
 # Ustar plot
 axs[0].plot(timegrid[:plot_cut], np.squeeze(timegrid[:plot_cut] * 0 + s.ustar * s.max_torque), 'r--', label=r'$u_*$')
-axs[0].plot(timegrid[:plot_cut], inputs[:plot_cut] * events[:plot_cut, 3], marker='o', markerfacecolor='none', linestyle='None', label='Events')
+axs[0].plot(timegrid[:plot_cut], inputs[:plot_cut] * events[:plot_cut, s.nlayers-1], marker='o', markerfacecolor='none', linestyle='None', label='Events')
 # axs[0].set_xlabel('Time steps',fontsize=14)
 axs[0].set_ylabel(r'Torque (N m)',fontsize=14)
 axs[0].legend(fontsize=14, loc='upper right', ncols=3)
@@ -204,7 +207,7 @@ axs[0].grid(True)
 axs[1].plot(timegrid[:plot_cut], states[:plot_cut, 0], label=r'$\theta$')
 # Theta star plot
 axs[1].plot(timegrid[:plot_cut], timegrid[:plot_cut] * 0 + s.xstar[0], 'r--', label=r'$\theta_*$')
-axs[1].plot(timegrid[:plot_cut], states[:plot_cut, 0] * events[:plot_cut, 3], marker='o', markerfacecolor='none', linestyle='None', label='Events')
+axs[1].plot(timegrid[:plot_cut], states[:plot_cut, 0] * events[:plot_cut, s.nlayers-1], marker='o', markerfacecolor='none', linestyle='None', label='Events')
 # axs[1].set_xlabel('Time steps',fontsize=14)
 axs[1].set_ylabel(r'$\theta$ (deg)',fontsize=14)
 axs[1].legend(fontsize=14, loc='upper right', ncols=3)
@@ -214,7 +217,7 @@ axs[1].grid(True)
 axs[2].plot(timegrid[:plot_cut], states[:plot_cut, 1], label=r'$\dot \theta$')
 # V star plot
 axs[2].plot(timegrid[:plot_cut], timegrid[:plot_cut] * 0 + s.xstar[1], 'r--', label=r'$\dot \theta_*$')
-axs[2].plot(timegrid[:plot_cut], states[:plot_cut, 1] * events[:plot_cut, 3], marker='o', markerfacecolor='none', linestyle='None', label='Events')
+axs[2].plot(timegrid[:plot_cut], states[:plot_cut, 1] * events[:plot_cut, s.nlayers-1], marker='o', markerfacecolor='none', linestyle='None', label='Events')
 # axs[2].set_xlabel('Time steps',fontsize=14)
 axs[2].set_ylabel(r'$\dot \theta$ (rad/s)',fontsize=14)
 axs[2].legend(fontsize=14, loc='lower right', ncols=3)
@@ -224,7 +227,7 @@ axs[2].grid(True)
 axs[3].plot(timegrid[:plot_cut], states[:plot_cut, 2], label=r'z')
 # Integrator state star plot
 axs[3].plot(timegrid[:plot_cut], timegrid[:plot_cut] * 0 + s.xstar[2], 'r--', label=r'$z_*$')
-axs[3].plot(timegrid[:plot_cut], states[:plot_cut, 2] * events[:plot_cut, 3], marker='o', markerfacecolor='none', linestyle='None', label='Events')
+axs[3].plot(timegrid[:plot_cut], states[:plot_cut, 2] * events[:plot_cut, s.nlayers-1], marker='o', markerfacecolor='none', linestyle='None', label='Events')
 axs[3].set_xlabel('Time steps',fontsize=14)
 axs[3].set_ylabel(r'z',fontsize=14)
 axs[3].legend(fontsize=14, loc='lower right', ncols=3)
