@@ -4,34 +4,32 @@ This repository contains the code to reproduce the experimental results in ["Lay
 
 ## How to Run the Code
 
-### Prerequisites
 
-Before running the code, ensure you have the following packages installed:
+This project uses [`uv`](https://github.com/astral-sh/uv) for dependency management. Follow the steps below to set up the environment.
 
-- Python 3.12.4
-- NumPy
-- Torch
-- Cvxpy
-- SciPy
-- Matplotlib
+## Setup Instructions
 
-You can install the required packages using pip:
-
-```bash
-pip install numpy scipy matplotlib torch cvxpy
+### 1. Install `uv`
+If you don’t have `uv` installed, install it with:
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+### 2. Install dependencies
+Run:
+```sh
+uv sync
+```
+### 3. Activate the Virtual Environment
+If you need to manually activate it:
+```sh
+source .venv/bin/activate
 ```
 
-### Solver
+## Mosek License Requirement
+This project requires a valid Mosek license.  
 
-This code uses the MOSEK solver for optimization. You need to install MOSEK and obtain a license to run it.
-
-You can install MOSEK using pip:
-
-```bash
-pip install mosek
-```
-
-A MOSEK license is required, visit the [MOSEK website](https://www.mosek.com/products/academic-licenses/)
+- If you already have a license, ensure it is accessible via the `MOSEKLM_LICENSE_FILE` environment variable or placed in the default Mosek license path.  
+    - If you need a license, you can obtain a free academic license from [Mosek’s website](https://www.mosek.com/products/academic-licenses/).
 
 
 ## Contents

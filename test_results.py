@@ -5,6 +5,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+## Matplotlib settings
+# Set global font size for all plot elements
+
+plt.rcParams.update({
+    'font.size': 18,          # General font size
+    'axes.titlesize': 18,     # Font size for axes titles
+    'axes.labelsize': 17,     # Font size for axes labels
+    'xtick.labelsize': 15,    # Font size for x-axis tick labels
+    'ytick.labelsize': 15,    # Font size for y-axis tick labels
+    'legend.fontsize': 16,    # Font size for legends
+    'figure.titlesize': 20    # Font size for figure titles
+})
+
 ## ======== WEIGHTS AND BIASES IMPORT ========
 
 weights_path = 'weights'
@@ -48,7 +61,7 @@ print(f"Volume of ellipsoid: {volume:.2f}")
 ref_bound = 5 * np.pi / 180
 
 # Flag to decide wether start in a random initial configuration such that the initial state is inside the ellipsoid or not
-random_start = True
+random_start = False
 
 # Loop to find a random initial state inside the ellipsoid
 if random_start:
@@ -199,8 +212,8 @@ axs[0].plot(timegrid[:plot_cut], inputs[:plot_cut], label=r'u')
 axs[0].plot(timegrid[:plot_cut], np.squeeze(timegrid[:plot_cut] * 0 + s.ustar * s.max_torque), 'r--', label=r'$u_*$')
 axs[0].plot(timegrid[:plot_cut], inputs[:plot_cut] * events[:plot_cut, s.nlayers-1], marker='o', markerfacecolor='none', linestyle='None', label='Events')
 # axs[0].set_xlabel('Time steps',fontsize=14)
-axs[0].set_ylabel(r'Torque (N m)',fontsize=14)
-axs[0].legend(fontsize=14, loc='upper right', ncols=3)
+axs[0].set_ylabel(r'Torque (N m)')
+axs[0].legend(loc='upper right', ncols=3)
 axs[0].grid(True)
 
 # Theta plot
@@ -209,8 +222,8 @@ axs[1].plot(timegrid[:plot_cut], states[:plot_cut, 0], label=r'$\theta$')
 axs[1].plot(timegrid[:plot_cut], timegrid[:plot_cut] * 0 + s.xstar[0], 'r--', label=r'$\theta_*$')
 axs[1].plot(timegrid[:plot_cut], states[:plot_cut, 0] * events[:plot_cut, s.nlayers-1], marker='o', markerfacecolor='none', linestyle='None', label='Events')
 # axs[1].set_xlabel('Time steps',fontsize=14)
-axs[1].set_ylabel(r'$\theta$ (deg)',fontsize=14)
-axs[1].legend(fontsize=14, loc='upper right', ncols=3)
+axs[1].set_ylabel(r'$\theta$ (deg)')
+axs[1].legend(loc='upper right', ncols=3)
 axs[1].grid(True)
 
 # V plot
@@ -219,8 +232,8 @@ axs[2].plot(timegrid[:plot_cut], states[:plot_cut, 1], label=r'$\dot \theta$')
 axs[2].plot(timegrid[:plot_cut], timegrid[:plot_cut] * 0 + s.xstar[1], 'r--', label=r'$\dot \theta_*$')
 axs[2].plot(timegrid[:plot_cut], states[:plot_cut, 1] * events[:plot_cut, s.nlayers-1], marker='o', markerfacecolor='none', linestyle='None', label='Events')
 # axs[2].set_xlabel('Time steps',fontsize=14)
-axs[2].set_ylabel(r'$\dot \theta$ (rad/s)',fontsize=14)
-axs[2].legend(fontsize=14, loc='lower right', ncols=3)
+axs[2].set_ylabel(r'$\dot \theta$ (rad/s)')
+axs[2].legend(loc='lower right', ncols=3)
 axs[2].grid(True)
 
 # Integrator state plot
@@ -228,31 +241,32 @@ axs[3].plot(timegrid[:plot_cut], states[:plot_cut, 2], label=r'z')
 # Integrator state star plot
 axs[3].plot(timegrid[:plot_cut], timegrid[:plot_cut] * 0 + s.xstar[2], 'r--', label=r'$z_*$')
 axs[3].plot(timegrid[:plot_cut], states[:plot_cut, 2] * events[:plot_cut, s.nlayers-1], marker='o', markerfacecolor='none', linestyle='None', label='Events')
-axs[3].set_xlabel('Time steps',fontsize=14)
-axs[3].set_ylabel(r'z',fontsize=14)
-axs[3].legend(fontsize=14, loc='lower right', ncols=3)
+axs[3].set_xlabel('Time steps')
+axs[3].set_ylabel(r'z')
+axs[3].legend(loc='lower right', ncols=3)
 axs[3].grid(True)
 plt.show()
 
-fig, axs = plt.subplots(1, 2, figsize=(10, 4))
-
+fig, axs = plt.subplots(1, 2, figsize=(12, 5))  # Adjusted figure size for better subtitle visibility
 
 # Lyapunov function plot
 lyap_cut = 100
 lyap_diff = lyap_diff[:lyap_cut]
 axs[0].plot(timegrid[1:lyap_cut+1], timegrid[1:lyap_cut+1] * 0 - (lyap_diff - np.max(lyap_diff))/(np.min(lyap_diff) - np.max(lyap_diff)), 'r', label=r'$\Delta V(x, \boldsymbol{\eta})$')
-axs[0].plot(timegrid[:lyap_cut], lyap[:lyap_cut], label=r'$V(x, \boldsymbol{\eta})$', markersize = 5)
-axs[0].set_xlabel('Time steps', fontsize=14)
-axs[0].legend(fontsize=14)
+axs[0].plot(timegrid[:lyap_cut], lyap[:lyap_cut], label=r'$V(x, \boldsymbol{\eta})$', markersize=5)
+axs[0].set_xlabel('Time steps')
+axs[0].legend()
 axs[0].grid(True)
 
 # Eta plots
 eta_cut = 100
 for i in range(s.nlayers):
   axs[1].plot(timegrid[:eta_cut], etas[:eta_cut, i], label=fr'$\eta^{{{i+1}}}$')
-axs[1].legend(fontsize=14)
-axs[1].set_xlabel('Time steps', fontsize=14)
+axs[1].legend()
+axs[1].set_xlabel('Time steps')
 axs[1].grid(True)
+
+plt.tight_layout()  # Ensures proper spacing to avoid subtitle cutoff
 plt.show()
 
 
@@ -270,15 +284,13 @@ plot_events = events[:event_cut]
 for i in range(s.nlayers):
   plot_events[:, i] *= i + 1
 
-plot_events = plot_events[::-1]
-
 for i in range(s.nlayers - 1, -1, -1):
   ax.stem(np.arange(event_cut), plot_events[:, i], linefmt=colors[i] + body[i], markerfmt=colors[i] + heads[i], basefmt="", label=f'ETM {i+1}')
 
 # Display the plot
 plt.ylim(0, 5)
-plt.xlabel('Time steps', fontsize=14)
-plt.legend(fontsize=14, loc='upper center', ncol=4)
+plt.xlabel('Time steps')
+plt.legend(loc='upper center', ncol=4)
 plt.grid(True)
 plt.show()
 
@@ -317,5 +329,5 @@ ax.plot(states[0, 0] - s.xstar[0], states[0, 1] - s.xstar[1], -8, marker='o', ma
 ax.plot(states[0, 0] - s.xstar[0], 8, states[0, 2] - s.xstar[2], marker='o', markersize=5, color='c')
 ax.plot(-35, states[0, 1] - s.xstar[1], states[0, 2] - s.xstar[2], marker='o', markersize=5, color='c')
 
-plt.legend(fontsize=14)
+plt.legend()
 plt.show()
