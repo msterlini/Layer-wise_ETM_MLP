@@ -176,8 +176,8 @@ class LMI():
         vcap = np.min([np.abs(-self.bound - self.wstar[i][k][0]), np.abs(self.bound - self.wstar[i][k][0])], axis=0)
 
         ellip = cp.bmat([
-            [self.P, cp.reshape(Z_el, (self.nx ,1))],
-            [cp.reshape(Z_el, (1, self.nx)), cp.reshape(2*self.alpha*T_el - self.alpha**2*vcap**(-2), (1, 1))] 
+            [self.P, cp.reshape(Z_el, (self.nx ,1), order='C')],
+            [cp.reshape(Z_el, (1, self.nx), order='C'), cp.reshape(2*self.alpha*T_el - self.alpha**2*vcap**(-2), (1, 1), order='C')] 
         ])
         self.constraints += [ellip >> 0]
     

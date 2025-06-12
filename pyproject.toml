@@ -5,7 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "cvxpy>=1.6.6",
     "matplotlib>=3.10.1",
+    "mosek>=11.0.22",
     "numpy>=2.2.4",
     "pyqt6>=6.8.1",
     "scipy>=1.15.2",
